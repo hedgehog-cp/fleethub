@@ -11,18 +11,14 @@ use super::{AttackPower, HitType};
 /// `add_density_to` が何を書き出すか。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum DensityMode {
-    /// そのまま。割合ダメージ（カスダメ）も実際のダメージ値で入る。
     All,
-    /// 割合ダメージだった結果だけ。それ以外は書き出さないので総和は 1 未満になる。
-    ///
-    /// 多段攻撃で畳み込むと「全弾が割合ダメージだった場合」の分布になる。
-    /// `All` から差し引けば、貫通が1発でも混ざった分と分けられる。
-    ScratchOnly,
+    /// 装甲を貫通しなかった結果だけ。ミスと割合ダメージが残る。
+    NoPenetration,
 }
 
 impl DensityMode {
     fn keeps_penetration(self) -> bool {
-        self != Self::ScratchOnly
+        self == Self::All
     }
 }
 
@@ -96,8 +92,7 @@ fn add_steps(out: &mut Vec<f64>, hp: u16, a: f64, b: f64, weight: f64) {
     });
 }
 
-/// 密な確率配列の指定ダメージ値に加算する。必要なら配列を伸ばす。
-fn add_at(out: &mut Vec<f64>, value: u16, rate: f64) {
+pub(crate) fn add_at(out: &mut Vec<f64>, value: u16, rate: f64) {
     let index = value as usize;
     if out.len() <= index {
         out.resize(index + 1, 0.0);
@@ -105,8 +100,6 @@ fn add_at(out: &mut Vec<f64>, value: u16, rate: f64) {
     out[index] += rate;
 }
 
-/// 出現回数を正規化して密な確率配列に加算する。
-/// 出現回数を確率に正規化する。
 fn counts_to_density(counts: Vec<(u16, usize)>) -> Histogram<u16, f64> {
     let total: usize = counts.iter().map(|(_, count)| *count).sum();
     let total = total as f64;
@@ -376,16 +369,16 @@ impl Damage {
             return;
         }
 
-        let keeps_penetration = mode.keeps_penetration();
-
         if self.hit_type == HitType::Miss {
             if self.is_cutin {
                 self.add_scratch_density_to(out, weight);
-            } else if keeps_penetration {
+            } else {
                 add_at(out, 0, weight);
             }
             return;
         }
+
+        let keeps_penetration = mode.keeps_penetration();
 
         // 中間の `Histogram<DamageType, f64>` を作らず、防御力サンプルを直接振り分ける。
         // 判定は `calc_damage_type` のままなので分類規則は一箇所に保たれる。
