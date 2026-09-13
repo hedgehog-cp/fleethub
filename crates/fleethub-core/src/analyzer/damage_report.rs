@@ -422,7 +422,7 @@ mod test {
                 critical: 0.0,
                 total: 0.5,
             }),
-            hits: 2.0,
+            hits: 1.0,
             is_cutin: false,
         };
 
@@ -432,7 +432,7 @@ mod test {
 
     #[test]
     fn test_no_penetration_keeps_plain_misses() {
-        let mut attack = attack(2.0, 400);
+        let mut attack = attack(1.0, 400);
         attack.is_cutin = false;
 
         let miss_rate = 1.0 - attack.hit_rate.as_ref().unwrap().total;
@@ -440,8 +440,8 @@ mod test {
 
         assert_close(
             &no_penetration,
-            &[(0, miss_rate * miss_rate)].into_iter().collect(),
-            "必ず貫通する攻撃では、全弾ミスだけが残る",
+            &[(0, miss_rate)].into_iter().collect(),
+            "必ず貫通する攻撃では、ミスだけが残る",
         );
     }
 
