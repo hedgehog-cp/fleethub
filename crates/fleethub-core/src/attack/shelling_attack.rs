@@ -47,7 +47,6 @@ impl ShellingAttackParams<'_> {
             attacker.special_enemy_mods(target.special_enemy_type(), style.attack_type.into());
 
         let mut aerial_power = None;
-        let mut aerial_power_ebonus = 0.0;
         let mut aerial_power_ibonus = 0.0;
         let mut proficiency_mods = None;
 
@@ -56,7 +55,6 @@ impl ShellingAttackParams<'_> {
             let anti_inst = target.is_installation();
 
             aerial_power = Some(attacker.aerial_power(anti_inst) as f64);
-            aerial_power_ebonus = attacker.ebonuses.aerial_power as f64;
             proficiency_mods = Some(attacker.proficiency_modifiers(day_cutin));
 
             aerial_power_ibonus = attacker
@@ -90,7 +88,7 @@ impl ShellingAttackParams<'_> {
             let basic = fleet_factor + firepower + ibonus + aerial_power_ibonus;
 
             let a14 = formation_mod * engagement_mod * damage_mod;
-            let b14 = cruiser_fit_bonus + aerial_power_ebonus;
+            let b14 = cruiser_fit_bonus;
             let a11 = cutin_mod;
 
             let precap_mod = AttackPowerModifier::new(a14, b14);
