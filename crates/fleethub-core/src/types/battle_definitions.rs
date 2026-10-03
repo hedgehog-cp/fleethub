@@ -11,7 +11,7 @@ use crate::member::BattleMemberRef;
 
 use super::{
     AttackPowerModifier, AttackType, CompiledEvaler, DayCutin, DayCutinLike, Formation, NightCutin,
-    NightCutinLike, NodeState, ShipConditions,
+    NightCutinLike, NodeState, ShipConditions, gear_id,
 };
 
 #[serde_as]
@@ -291,6 +291,12 @@ impl BattleDefinitions {
                     params.target_evasion_mod *= def.evasion_mod;
                 })
         };
+
+        // https://kancolle.fandom.com/ja/f/p/2795672881332226463/r/3180511782502402644
+        let in_area_3 = (31..=39).contains(&node_state.map);
+        if in_area_3 && target.gears.has(gear_id!("北方迷彩(+北方装備)")) {
+            params.armor_penetration -= 3.0;
+        }
 
         params
     }
