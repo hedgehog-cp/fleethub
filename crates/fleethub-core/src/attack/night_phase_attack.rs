@@ -92,7 +92,7 @@ impl NightAttackParams<'_> {
         let armor_penetration = attack_power_params
             .as_ref()
             .map_or(0.0, |p| p.armor_penetration);
-        let defense_params = DefenseParams::from_target(target, target.side(), armor_penetration);
+        let defense_params = DefenseParams::from_target(target, target.position, armor_penetration);
 
         let hits = if attacker.level >= 80 {
             style.hits

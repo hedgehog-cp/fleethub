@@ -34,8 +34,6 @@ impl AswAttackParams<'_> {
             historical_params,
         } = self;
 
-        let attacker_side = attacker.side();
-        let target_side = !attacker_side;
         let attack_type = style.attack_type;
 
         let proficiency_mods = if attack_type == AswAttackType::DepthCharge
@@ -166,7 +164,7 @@ impl AswAttackParams<'_> {
 
         let attack_power_params = calc_attack_power_params();
         let hit_rate_params = calc_hit_rate_params();
-        let defense_params = DefenseParams::from_target(target, target_side, armor_penetration);
+        let defense_params = DefenseParams::from_target(target, target.position, armor_penetration);
 
         AttackParams {
             attack_power_params,

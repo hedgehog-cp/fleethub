@@ -2,7 +2,7 @@ use rand::prelude::*;
 
 use crate::{
     ship::Ship,
-    types::{DefensePower, MoraleState, Side},
+    types::{DefensePower, MoraleState, ShipPosition},
     utils::{Density, Histogram},
 };
 
@@ -184,17 +184,52 @@ pub struct DefenseParams {
 }
 
 impl DefenseParams {
-    pub fn from_target(target: &Ship, side: Side, armor_penetration: f64) -> Option<Self> {
-        let overkill_protection = side.is_player() && target.morale_state() != MoraleState::Red;
-        let sinkable = side.is_enemy();
-
-        Some(Self {
+    /// 戦闘開始時に大破でなかったとする。
+    pub fn from_target(
+        target: &Ship,
+        position: ShipPosition,
+        armor_penetration: f64,
+    ) -> Option<Self> {
+        let params = Self {
             basic_defense_power: target.basic_defense_power(armor_penetration)?,
             max_hp: target.max_hp()?,
             current_hp: target.current_hp,
+            overkill_protection: false,
+            sinkable: true,
+        };
+
+        Some(params.with_lethal_replacement(target.morale_state(), position, false))
+    }
+
+    /// 残耐久以上のダメージに掛かる置換を決める。上から順に、どれかが掛かる。
+    /// - 第1種 (残耐久の 5 割から 8 割): 戦闘開始時に大破の随伴艦でなく、通常艦隊で赤疲労でもない
+    /// - 第2種 (残耐久 − 1): 戦闘開始時に大破でなく、旗艦でなく、連合艦隊で赤疲労でもない
+    /// - どちらでもなければ置換されず、沈む
+    ///
+    /// 旗艦は連合艦隊の第二艦隊の旗艦も含む。敵の艦には置換が掛からない。
+    pub fn with_lethal_replacement(
+        self,
+        morale: MoraleState,
+        position: ShipPosition,
+        heavily_damaged_at_start: bool,
+    ) -> Self {
+        let (overkill_protection, sinkable) = if position.side().is_enemy() {
+            (false, true)
+        } else {
+            let red = morale == MoraleState::Red;
+            let combined = position.org_type.is_combined();
+            let flagship = position.is_flagship();
+
+            let first = !(heavily_damaged_at_start && !flagship) && !(red && !combined);
+            let second = !first && !heavily_damaged_at_start && !flagship && !(red && combined);
+            (first, !first && !second)
+        };
+
+        Self {
             overkill_protection,
             sinkable,
-        })
+            ..self
+        }
     }
 }
 
@@ -431,7 +466,11 @@ impl Damage {
 
 #[cfg(test)]
 mod test {
-    use crate::{histogram, test::rng};
+    use crate::{
+        histogram,
+        test::rng,
+        types::{FleetType, OrgType},
+    };
 
     use super::*;
 
@@ -726,5 +765,50 @@ mod test {
                 35 => 0.15384615384615385,
             }
         );
+    }
+    /// 置換の種類を (overkill_protection, sinkable) で表す。第1種は (true, false)、第2種は (false, false)、
+    /// 置換なしは (false, true)。
+    #[test]
+    fn test_lethal_replacement() {
+        fn replacement(
+            org_type: OrgType,
+            fleet_type: FleetType,
+            index: usize,
+            morale: MoraleState,
+            heavily_damaged_at_start: bool,
+        ) -> (bool, bool) {
+            let position = ShipPosition {
+                org_type,
+                fleet_type,
+                index,
+                ..Default::default()
+            };
+            let params = DefenseParams::default().with_lethal_replacement(
+                morale,
+                position,
+                heavily_damaged_at_start,
+            );
+            (params.overkill_protection, params.sinkable)
+        }
+
+        use FleetType::{Escort, Main};
+        use MoraleState::{Normal, Red};
+        use OrgType::{CarrierTaskForce, EnemySingle, Single};
+        const FIRST: (bool, bool) = (true, false);
+        const SECOND: (bool, bool) = (false, false);
+        const NONE: (bool, bool) = (false, true);
+
+        assert_eq!(replacement(Single, Main, 1, Normal, false), FIRST);
+        assert_eq!(replacement(Single, Main, 1, Normal, true), NONE);
+        assert_eq!(replacement(Single, Main, 0, Normal, true), FIRST);
+        assert_eq!(replacement(Single, Main, 1, Red, false), SECOND);
+        assert_eq!(replacement(Single, Main, 0, Red, false), NONE);
+        assert_eq!(replacement(CarrierTaskForce, Main, 1, Red, false), FIRST);
+        assert_eq!(
+            replacement(CarrierTaskForce, Escort, 0, Normal, true),
+            FIRST
+        );
+        assert_eq!(replacement(CarrierTaskForce, Escort, 1, Normal, true), NONE);
+        assert_eq!(replacement(EnemySingle, Main, 0, Normal, false), NONE);
     }
 }

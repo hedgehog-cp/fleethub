@@ -42,7 +42,7 @@ impl TorpedoAttackParams<'_> {
         let hit_rate_params = self.calc_hit_rate_params(fleet_factors, normal_attack_power);
 
         let defense_params =
-            DefenseParams::from_target(self.target, self.target.side(), armor_penetration);
+            DefenseParams::from_target(self.target, self.target.position, armor_penetration);
 
         AttackParams {
             attack_power_params,

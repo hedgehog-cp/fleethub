@@ -38,7 +38,6 @@ impl ShellingAttackParams<'_> {
 
         let style = &self.style;
         let fleet_factors = FleetFactors::for_shelling(attacker.position, target.position).ok();
-        let target_side = target.side();
 
         let ap_shell_mods = target
             .is_heavily_armored_ship()
@@ -227,7 +226,7 @@ impl ShellingAttackParams<'_> {
 
         let attack_power_params = calc_attack_power_params();
         let hit_rate_params = calc_hit_rate_params();
-        let defense_params = DefenseParams::from_target(target, target_side, armor_penetration);
+        let defense_params = DefenseParams::from_target(target, target.position, armor_penetration);
 
         AttackParams {
             attack_power_params,

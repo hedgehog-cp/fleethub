@@ -62,7 +62,7 @@ pub fn create_airstrike_params<P: PlaneImpl, R: Rng + ?Sized>(
     };
 
     const ARMOR_PENETRATION: f64 = 0.0;
-    let defense_params = DefenseParams::from_target(target, target.side(), ARMOR_PENETRATION);
+    let defense_params = DefenseParams::from_target(target, target.position, ARMOR_PENETRATION);
 
     AttackParams {
         attack_power_params,

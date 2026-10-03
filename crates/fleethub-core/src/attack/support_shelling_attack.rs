@@ -29,7 +29,7 @@ impl SupportShellingAttackParams<'_> {
     }
 
     pub fn calc_attack_params(&self) -> AttackParams {
-        let defense_params = DefenseParams::from_target(self.target, self.target.side(), 0.0);
+        let defense_params = DefenseParams::from_target(self.target, self.target.position, 0.0);
 
         AttackParams {
             attack_power_params: self.calc_attack_power_params(),
